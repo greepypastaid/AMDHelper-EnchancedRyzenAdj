@@ -40,8 +40,8 @@ export default class Ryzenadj {
         "silent": {
             name: "Silent",
             args: [
-                "--stapm-limit=3000",
-                "--slow-limit=4500",
+                "--stapm-limit=5000",
+                "--slow-limit=5500",
                 "--fast-limit=6000",
                 "--tctl-temp=60",
                 "--apu-skin-temp=60",
