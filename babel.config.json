@@ -5,6 +5,7 @@
             {
                 "modules": "amd"
             }
-        ]
+        ],
+        "@babel/preset-typescript"
     ]
 }

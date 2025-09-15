@@ -34,7 +34,7 @@ export default class CommandLine {
         console.log(`(C) ${global.commandlineChromiumMode ? "Exit" : "Enter"} Chromium apps mode (${chalk.rgb(255,99,71)("EXPERIMENTAL")})`)
         
         const ryzenadj = new Ryzenadj();
-        console.log(`(O) ${ryzenadj.enabled() ? "Remove" : "Apply"} battery optimization (${chalk.rgb(255,99,71)("May cause lags")})`)
+        console.log(`(O) RyzenAdj Presets (${chalk.rgb(255,99,71)("EXPERIMENTAL")})`)
         
         console.log("(Q) Quit")
 
@@ -78,9 +78,7 @@ export default class CommandLine {
                     break;
                 }
             case "o":
-                const ryzenadj = new Ryzenadj();
-                if (ryzenadj.enabled()) ryzenadj.remove();
-                else await ryzenadj.apply();
+                await this.handleRyzenadjPresets();
                 break;
             case "r":
                 if(global.commandlineChromiumMode){
@@ -104,6 +102,36 @@ export default class CommandLine {
 
         const cli = new CommandLine();
         await cli.start();
+    }
+
+    async handleRyzenadjPresets() {
+        const ryzenadj = new Ryzenadj();
+        const presets = [
+            { name: "Balanced", value: "balanced" },
+            { name: "Performance", value: "performance" },
+            { name: "Silent", value: "silent" },
+            { name: "Gaming", value: "gaming" },
+            { name: "Remove Optimization", value: "remove" },
+        ];
+
+        const answers = await inquirer.prompt([
+            {
+                type: "list",
+                name: "preset",
+                message: "Select a RyzenAdj preset:",
+                choices: presets.map(p => p.name),
+            },
+        ]);
+
+        const selectedPreset = presets.find(p => p.name === answers.preset);
+
+        if (selectedPreset) {
+            if (selectedPreset.value === "remove") {
+                await ryzenadj.remove();
+            } else {
+                await ryzenadj.apply(selectedPreset.value);
+            }
+        }
     }
     async patchAllApps(){
         for(const app of this.supportedApps){

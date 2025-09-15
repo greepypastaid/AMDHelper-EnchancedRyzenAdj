@@ -16,7 +16,12 @@ module.exports =  {
         rules: [
             {
                 test: /\.(js|jsx|tsx|ts)$/,
-                exclude: /node_modules/,
+                exclude: (modulePath) => {
+                    return (
+                        /node_modules/.test(modulePath) &&
+                        !/node_modules\/amdfriend/.test(modulePath)
+                    );
+                },
                 loader: 'babel-loader'
             }
         ]
@@ -24,7 +29,7 @@ module.exports =  {
     resolve: {
         extensions: ['.js', '.ts'],
         alias: {
-            "amdfriend/src": "amdfriend/dist",
+            "amdfriend/src": path.resolve(__dirname, "node_modules/amdfriend/src"),
             "@src": path.resolve(__dirname, "src"),
             "@patches": path.resolve(__dirname, "src", "patches"),
         }

@@ -8,12 +8,73 @@ const plistPath = escapePathSpaces(
     "/Library/LaunchDaemons/org.alvindimas05.ryzenadj.plist"
 );
 
+interface RyzenadjPreset {
+    name: string;
+    args: string[];
+}
+
 export default class Ryzenadj {
+    private selectedPreset: string = "balanced"; // Default preset
+
+    private ryzenadjPresets: { [key: string]: RyzenadjPreset } = {
+        "balanced": {
+            name: "Balanced",
+            args: [
+                "--stapm-limit=7000",
+                "--slow-limit=8000",
+                "--fast-limit=9000",
+                "--tctl-temp=75",
+                "--apu-skin-temp=75",
+            ],
+        },
+        "performance": {
+            name: "Performance",
+            args: [
+                "--stapm-limit=12000",
+                "--slow-limit=13000",
+                "--fast-limit=15000",
+                "--tctl-temp=85",
+                "--apu-skin-temp=85",
+            ],
+        },
+        "silent": {
+            name: "Silent",
+            args: [
+                "--stapm-limit=3000",
+                "--slow-limit=4500",
+                "--fast-limit=6000",
+                "--tctl-temp=60",
+                "--apu-skin-temp=60",
+            ],
+        },
+        "gaming": {
+            name: "Gaming",
+            args: [
+                "--stapm-limit=20000",
+                "--slow-limit=22000",
+                "--fast-limit=25000",
+                "--tctl-temp=90",
+                "--apu-skin-temp=90",
+            ],
+        },
+    };
+
     enabled() {
         return fs.existsSync(ryzenadjPath) || fs.existsSync(plistPath);
     }
-    async apply() {
-        console.log("Applying battery optimization...");
+    getPresetArgs(presetName: string): string[] {
+        const preset = this.ryzenadjPresets[presetName];
+        if (!preset) {
+            console.warn(`Preset '${presetName}' not found. Using 'balanced' preset.`);
+            return this.ryzenadjPresets["balanced"].args;
+        }
+        return preset.args;
+    }
+    async apply(presetName?: string) {
+        if (presetName) {
+            this.selectedPreset = presetName;
+        }
+        console.log(`Applying ${this.ryzenadjPresets[this.selectedPreset].name} optimization...`);
 
         await exec(`mkdir -p ${localBinPath}`);
         await exec(
@@ -22,26 +83,19 @@ export default class Ryzenadj {
         await exec(`xattr -c ${ryzenadjPath}`);
         await exec(`chmod 755 ${ryzenadjPath}`);
         await exec(`chown 0:0 ${ryzenadjPath}`);
-        fs.writeFileSync(plistPath, plist);
+
+        const currentPresetArgs = this.getPresetArgs(this.selectedPreset);
+        const plistContent = this.generatePlist(currentPresetArgs);
+
+        fs.writeFileSync(plistPath, plistContent);
         await exec(`xattr -c ${plistPath}`);
         await exec(`chmod 644 ${plistPath}`);
         await exec(`chown 0:0 ${plistPath}`);
         await exec(`launchctl load ${plistPath}`);
     }
-    async remove() {
-        console.log("Removing battery optimization...");
-
-        await exec(`launchctl unload ${plistPath}`);
-        try {
-            fs.rmSync(ryzenadjPath);
-        } catch {}
-        try {
-            fs.rmSync(plistPath);
-        } catch {}
-    }
-}
-
-const plist = `
+    private generatePlist(args: string[]): string {
+        const argsString = args.map(arg => `\t\t<string>${arg}</string>`).join('\n');
+        return `
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -59,21 +113,7 @@ const plist = `
 	<key>ProgramArguments</key>
 	<array>
 		<string>/usr/local/bin/ryzenadj</string>
-		<string>--stapm-limit=13000</string>
-		<string>--slow-limit=14000</string>
-		<string>--fast-limit=15000</string>
-		<string>--vrm-current=11000</string>
-		<string>--vrmmax-current=16000</string>
-		<string>--vrmsoc-current=0</string>
-		<string>--vrmsocmax-current=0</string>
-		<string>--vrmgfx-current=0</string>
-		<string>--psi0-current=0</string>
-		<string>--psi0soc-current=0</string>
-		<string>--tctl-temp=59</string>
-		<string>--apu-skin-temp=59</string>
-		<string>--stapm-time=64</string>
-		<string>--slow-time=128</string>
-		<string>--power-saving</string>
+${argsString}
 	</array>
 	<key>RunAtLoad</key>
 	<true/>
@@ -88,3 +128,16 @@ const plist = `
 </dict>
 </plist>
 `;
+    }
+    async remove() {
+        console.log("Removing battery optimization...");
+
+        await exec(`launchctl unload ${plistPath}`);
+        try {
+            fs.rmSync(ryzenadjPath);
+        } catch {}
+        try {
+            fs.rmSync(plistPath);
+        } catch {}
+    }
+}

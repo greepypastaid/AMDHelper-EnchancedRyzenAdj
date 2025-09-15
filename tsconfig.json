@@ -6,6 +6,8 @@
     "moduleDetection": "force",
     "allowJs": false,
     "baseUrl": "./",
+    "types": ["node"],
+    "typeRoots": ["./node_modules/@types", "./src/types"],
 
     "allowImportingTsExtensions": false,
     "verbatimModuleSyntax": false,
