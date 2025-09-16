@@ -5,7 +5,7 @@ import path from "path";
 const localBinPath = escapePathSpaces("/usr/local/bin");
 const ryzenadjPath = escapePathSpaces(`${localBinPath}/ryzenadj`);
 const plistPath = escapePathSpaces(
-    "/Library/LaunchDaemons/org.alvindimas05.ryzenadj.plist"
+    "/Library/LaunchDaemons/org.greepypastaid.customryzenadj.plist"
 );
 
 interface RyzenadjPreset {
@@ -14,6 +14,9 @@ interface RyzenadjPreset {
 }
 
 export default class Ryzenadj {
+    enabled() {
+        return fs.existsSync(ryzenadjPath) || fs.existsSync(plistPath);
+    }
     private selectedPreset: string = "balanced"; // Default preset
 
     private ryzenadjPresets: { [key: string]: RyzenadjPreset } = {
@@ -51,17 +54,14 @@ export default class Ryzenadj {
             name: "Gaming",
             args: [
                 "--stapm-limit=20000",
-                "--slow-limit=22000",
+                "--slow-limit=21000",
                 "--fast-limit=25000",
-                "--tctl-temp=90",
-                "--apu-skin-temp=90",
+                "--tctl-temp=95",
+                "--apu-skin-temp=95",
             ],
         },
     };
 
-    enabled() {
-        return fs.existsSync(ryzenadjPath) || fs.existsSync(plistPath);
-    }
     getPresetArgs(presetName: string): string[] {
         const preset = this.ryzenadjPresets[presetName];
         if (!preset) {
@@ -70,29 +70,7 @@ export default class Ryzenadj {
         }
         return preset.args;
     }
-    async apply(presetName?: string) {
-        if (presetName) {
-            this.selectedPreset = presetName;
-        }
-        console.log(`Applying ${this.ryzenadjPresets[this.selectedPreset].name} optimization...`);
 
-        await exec(`mkdir -p ${localBinPath}`);
-        await exec(
-            `curl -sL https://github.com/alvindimas05/AMDHelper/raw/refs/heads/main/ryzenadj -o ${ryzenadjPath}`
-        );
-        await exec(`xattr -c ${ryzenadjPath}`);
-        await exec(`chmod 755 ${ryzenadjPath}`);
-        await exec(`chown 0:0 ${ryzenadjPath}`);
-
-        const currentPresetArgs = this.getPresetArgs(this.selectedPreset);
-        const plistContent = this.generatePlist(currentPresetArgs);
-
-        fs.writeFileSync(plistPath, plistContent);
-        await exec(`xattr -c ${plistPath}`);
-        await exec(`chmod 644 ${plistPath}`);
-        await exec(`chown 0:0 ${plistPath}`);
-        await exec(`launchctl load ${plistPath}`);
-    }
     private generatePlist(args: string[]): string {
         const argsString = args.map(arg => `\t\t<string>${arg}</string>`).join('\n');
         return `
@@ -105,7 +83,7 @@ export default class Ryzenadj {
 	<key>KeepAlive</key>
 	<false/>
 	<key>Label</key>
-	<string>org.alvindimas05.ryzenadj</string>
+	<string>org.greepypastaid.customryzenadj</string>
 	<key>OnDemand</key>
 	<false/>
 	<key>ProcessType</key>
@@ -128,6 +106,38 @@ ${argsString}
 </dict>
 </plist>
 `;
+    }
+
+    async apply(presetName?: string) {
+        // Hapus optimasi yang ada sebelum menerapkan yang baru
+        if (this.enabled()) {
+            await this.remove();
+        }
+
+        if (presetName) {
+            this.selectedPreset = presetName;
+        }
+
+        console.log(`Applying ${this.ryzenadjPresets[this.selectedPreset].name} optimization...`);
+
+        // Pastikan direktori bin lokal ada
+        await exec(`mkdir -p ${localBinPath}`);
+        // Unduh atau perbarui binary ryzenadj
+        await exec(
+            `curl -sL https://github.com/alvindimas05/AMDHelper/raw/refs/heads/main/ryzenadj -o ${ryzenadjPath}`
+        );
+        await exec(`xattr -c ${ryzenadjPath}`);
+        await exec(`chmod 755 ${ryzenadjPath}`);
+        await exec(`chown 0:0 ${ryzenadjPath}`);
+
+        const currentPresetArgs = this.getPresetArgs(this.selectedPreset);
+        const plistContent = this.generatePlist(currentPresetArgs);
+
+        fs.writeFileSync(plistPath, plistContent);
+        await exec(`xattr -c ${plistPath}`);
+        await exec(`chmod 644 ${plistPath}`);
+        await exec(`chown 0:0 ${plistPath}`);
+        await exec(`launchctl load ${plistPath}`);
     }
     async remove() {
         console.log("Removing battery optimization...");

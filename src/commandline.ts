@@ -105,6 +105,27 @@ export default class CommandLine {
     }
 
     async handleRyzenadjPresets() {
+        console.log("RyzenAdj Preset Scenarios:\n");
+        console.log(chalk.bold("1. Balanced:"));
+        console.log("   - Skenario: Penggunaan sehari-hari, browsing, dan pekerjaan ringan.");
+        console.log("   - Suhu Maksimal: 75°C");
+        console.log("   - Batas Daya: 7W (STAPM), 8W (SLOW), 9W (FAST)\n");
+
+        console.log(chalk.bold("2. Performance:"));
+        console.log("   - Skenario: Tugas berat seperti rendering video atau kompilasi kode.");
+        console.log("   - Suhu Maksimal: 85°C");
+        console.log("   - Batas Daya: 12W (STAPM), 13W (SLOW), 15W (FAST)\n");
+
+        console.log(chalk.bold("3. Silent:"));
+        console.log("   - Skenario: Menonton film atau bekerja di lingkungan yang tenang.");
+        console.log("   - Suhu Maksimal: 60°C");
+        console.log("   - Batas Daya: 5W (STAPM), 5.5W (SLOW), 6W (FAST)\n");
+
+        console.log(chalk.bold("4. Gaming:"));
+        console.log("   - Skenario: Bermain game untuk performa maksimal.");
+        console.log("   - Suhu Maksimal: 95°C");
+        console.log("   - Batas Daya: 20W (STAPM), 21W (SLOW), 25W (FAST)\n");
+
         const ryzenadj = new Ryzenadj();
         const presets = [
             { name: "Balanced", value: "balanced" },

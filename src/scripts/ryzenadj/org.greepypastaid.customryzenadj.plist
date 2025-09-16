@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>EnablePressuredExit</key>
+    <true/>
+    <key>KeepAlive</key>
+    <false/>
+    <key>Label</key>
+    <string>org.greepypastaid.customryzenadj</string>
+    <key>OnDemand</key>
+    <false/>
+    <key>ProcessType</key>
+    <string>App</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/ryzenadj</string>
+        <string>--stapm-limit=7000</string>
+        <string>--slow-limit=8000</string>
+        <string>--fast-limit=9000</string>
+        <string>--tctl-temp=75</string>
+        <string>--apu-skin-temp=75</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardErrorPath</key>
+    <string>/tmp/ryzenadj.err.log</string>
+    <key>StandardOutPath</key>
+    <string>/tmp/ryzenadj.log</string>
+    <key>ThrottleInterval</key>
+    <integer>1</integer>
+    <key>UserName</key>
+    <string>root</string>
+</dict>
+</plist>
