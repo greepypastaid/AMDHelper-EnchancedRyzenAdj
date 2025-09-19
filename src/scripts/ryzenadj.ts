@@ -5,75 +5,87 @@ import path from "path";
 const localBinPath = escapePathSpaces("/usr/local/bin");
 const ryzenadjPath = escapePathSpaces(`${localBinPath}/ryzenadj`);
 const plistPath = escapePathSpaces(
-    "/Library/LaunchDaemons/org.greepypastaid.customryzenadj.plist"
+  "/Library/LaunchDaemons/org.greepypastaid.customryzenadj.plist"
 );
 
 interface RyzenadjPreset {
-    name: string;
-    args: string[];
+  name: string;
+  args: string[];
 }
 
 export default class Ryzenadj {
-    enabled() {
-        return fs.existsSync(ryzenadjPath) || fs.existsSync(plistPath);
+  enabled() {
+    return fs.existsSync(ryzenadjPath) || fs.existsSync(plistPath);
+  }
+  private selectedPreset: string = "balanced"; // Default preset
+
+  private ryzenadjPresets: { [key: string]: RyzenadjPreset } = {
+    balanced: {
+      name: "Balanced",
+      args: [
+        "--stapm-limit=8000",
+        "--slow-limit=10000",
+        "--fast-limit=12000",
+        "--tctl-temp=75",
+        "--apu-skin-temp=75",
+        "--slow-time=120",
+        "--stapm-time=60",
+      ],
+    },
+    performance: {
+      name: "Performance",
+      args: [
+        "--stapm-limit=13000",
+        "--slow-limit=15000",
+        "--fast-limit=15000",
+        "--tctl-temp=85",
+        "--apu-skin-temp=85",
+        "--slow-time=120",
+        "--stapm-time=90",
+      ],
+    },
+    silent: {
+      name: "Silent",
+      args: [
+        "--stapm-limit=7000",
+        "--slow-limit=8200",
+        "--fast-limit=10000",
+        "--tctl-temp=64",
+        "--apu-skin-temp=64",
+        "--slow-time=120",
+        "--stapm-time=60",
+      ],
+    },
+    gaming: {
+      name: "Gaming",
+      args: [
+        "--stapm-limit=20000",
+        "--slow-limit=23000",
+        "--fast-limit=25000",
+        "--tctl-temp=95",
+        "--apu-skin-temp=95",
+        "--slow-time=120",
+        "--stapm-time=60",
+      ],
+    },
+  };
+
+  getPresetArgs(presetName: string): string[] {
+    const preset = this.ryzenadjPresets[presetName];
+    if (!preset) {
+      console.warn(
+        `Preset '${presetName}' not found. Using 'balanced' preset.`
+      );
+      return this.ryzenadjPresets["balanced"].args;
     }
-    private selectedPreset: string = "balanced"; // Default preset
+    return preset.args;
+  }
 
-    private ryzenadjPresets: { [key: string]: RyzenadjPreset } = {
-        "balanced": {
-            name: "Balanced",
-            args: [
-                "--stapm-limit=7000",
-                "--slow-limit=8000",
-                "--fast-limit=9000",
-                "--tctl-temp=75",
-                "--apu-skin-temp=75",
-            ],
-        },
-        "performance": {
-            name: "Performance",
-            args: [
-                "--stapm-limit=12000",
-                "--slow-limit=13000",
-                "--fast-limit=15000",
-                "--tctl-temp=85",
-                "--apu-skin-temp=85",
-            ],
-        },
-        "silent": {
-            name: "Silent",
-            args: [
-                "--stapm-limit=5000",
-                "--slow-limit=5500",
-                "--fast-limit=6000",
-                "--tctl-temp=60",
-                "--apu-skin-temp=60",
-            ],
-        },
-        "gaming": {
-            name: "Gaming",
-            args: [
-                "--stapm-limit=20000",
-                "--slow-limit=21000",
-                "--fast-limit=25000",
-                "--tctl-temp=95",
-                "--apu-skin-temp=95",
-            ],
-        },
-    };
-
-    getPresetArgs(presetName: string): string[] {
-        const preset = this.ryzenadjPresets[presetName];
-        if (!preset) {
-            console.warn(`Preset '${presetName}' not found. Using 'balanced' preset.`);
-            return this.ryzenadjPresets["balanced"].args;
-        }
-        return preset.args;
-    }
-
-    private generatePlist(args: string[]): string {
-        const argsString = args.map(arg => `\t\t<string>${arg}</string>`).join('\n');
-        return `
+  private generatePlist(args: string[]): string {
+    const argsString = args
+      .map((arg) => `\t\t<string>${arg}</string>`)
+      .join("\n");
+    return `
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -106,48 +118,52 @@ ${argsString}
 </dict>
 </plist>
 `;
+  }
+
+  async apply(presetName?: string) {
+    // Hapus optimasi yang ada sebelum menerapkan yang baru
+    if (this.enabled()) {
+      await this.remove();
     }
 
-    async apply(presetName?: string) {
-        // Hapus optimasi yang ada sebelum menerapkan yang baru
-        if (this.enabled()) {
-            await this.remove();
-        }
-
-        if (presetName) {
-            this.selectedPreset = presetName;
-        }
-
-        console.log(`Applying ${this.ryzenadjPresets[this.selectedPreset].name} optimization...`);
-
-        // Pastikan direktori bin lokal ada
-        await exec(`mkdir -p ${localBinPath}`);
-        // Unduh atau perbarui binary ryzenadj
-        await exec(
-            `curl -sL https://github.com/alvindimas05/AMDHelper/raw/refs/heads/main/ryzenadj -o ${ryzenadjPath}`
-        );
-        await exec(`xattr -c ${ryzenadjPath}`);
-        await exec(`chmod 755 ${ryzenadjPath}`);
-        await exec(`chown 0:0 ${ryzenadjPath}`);
-
-        const currentPresetArgs = this.getPresetArgs(this.selectedPreset);
-        const plistContent = this.generatePlist(currentPresetArgs);
-
-        fs.writeFileSync(plistPath, plistContent);
-        await exec(`xattr -c ${plistPath}`);
-        await exec(`chmod 644 ${plistPath}`);
-        await exec(`chown 0:0 ${plistPath}`);
-        await exec(`launchctl load ${plistPath}`);
+    if (presetName) {
+      this.selectedPreset = presetName;
     }
-    async remove() {
-        console.log("Removing battery optimization...");
 
-        await exec(`launchctl unload ${plistPath}`);
-        try {
-            fs.rmSync(ryzenadjPath);
-        } catch {}
-        try {
-            fs.rmSync(plistPath);
-        } catch {}
-    }
+    console.log(
+      `Applying ${
+        this.ryzenadjPresets[this.selectedPreset].name
+      } optimization...`
+    );
+
+    // Pastikan direktori bin lokal ada
+    await exec(`mkdir -p ${localBinPath}`);
+    // Unduh atau perbarui binary ryzenadj
+    await exec(
+      `curl -sL https://github.com/alvindimas05/AMDHelper/raw/refs/heads/main/ryzenadj -o ${ryzenadjPath}`
+    );
+    await exec(`xattr -c ${ryzenadjPath}`);
+    await exec(`chmod 755 ${ryzenadjPath}`);
+    await exec(`chown 0:0 ${ryzenadjPath}`);
+
+    const currentPresetArgs = this.getPresetArgs(this.selectedPreset);
+    const plistContent = this.generatePlist(currentPresetArgs);
+
+    fs.writeFileSync(plistPath, plistContent);
+    await exec(`xattr -c ${plistPath}`);
+    await exec(`chmod 644 ${plistPath}`);
+    await exec(`chown 0:0 ${plistPath}`);
+    await exec(`launchctl load ${plistPath}`);
+  }
+  async remove() {
+    console.log("Removing battery optimization...");
+
+    await exec(`launchctl unload ${plistPath}`);
+    try {
+      fs.rmSync(ryzenadjPath);
+    } catch {}
+    try {
+      fs.rmSync(plistPath);
+    } catch {}
+  }
 }
