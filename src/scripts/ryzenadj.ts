@@ -120,6 +120,90 @@ ${argsString}
 `;
   }
 
+  private async isRyzenadjBinaryValid(binaryPath: string): Promise<boolean> {
+    try {
+      // Cek apakah file exists
+      if (!fs.existsSync(binaryPath)) {
+        return false;
+      }
+
+      // Cek apakah file executable
+      const stats = fs.statSync(binaryPath);
+      const isExecutable = (stats.mode & 0o111) !== 0;
+      
+      if (!isExecutable) {
+        return false;
+      }
+
+      // Test apakah binary bisa dijalankan
+      try {
+        await exec(`${binaryPath} --help`);
+        return true;
+      } catch {
+        return false;
+      }
+    } catch {
+      return false;
+    }
+  }
+
+  private async ensureRyzenadjBinary(): Promise<void> {
+    const projectRyzenadjPath = "./ryzenadj";
+    const systemRyzenadjPath = ryzenadjPath.replace(/\\/g, ""); // Remove escape characters
+
+    console.log("Checking for ryzenadj binary...");
+
+    // 1. Cek di system path (/usr/local/bin/ryzenadj)
+    if (await this.isRyzenadjBinaryValid(systemRyzenadjPath)) {
+      console.log("Found valid ryzenadj binary in system path.");
+      return;
+    }
+
+    // 2. Cek di root project (./ryzenadj)
+    if (await this.isRyzenadjBinaryValid(projectRyzenadjPath)) {
+      console.log("Found valid ryzenadj binary in project directory.");
+      console.log("Copying to system path...");
+      
+      try {
+        await exec(`mkdir -p ${localBinPath}`);
+        await exec(`cp ${projectRyzenadjPath} ${systemRyzenadjPath}`);
+        await exec(`xattr -c ${systemRyzenadjPath}`);
+        await exec(`chmod 755 ${systemRyzenadjPath}`);
+        await exec(`chown 0:0 ${systemRyzenadjPath}`);
+        console.log("Successfully copied ryzenadj to system path.");
+        return;
+      } catch (error) {
+        console.error("Failed to copy ryzenadj to system path:", error);
+        throw new Error("Failed to setup ryzenadj binary from project directory.");
+      }
+    }
+
+    // 3. Download jika tidak ada di mana-mana
+    console.log("ryzenadj binary not found. Downloading from GitHub...");
+    
+    try {
+      await exec(`mkdir -p ${localBinPath}`);
+      await exec(
+        `curl -sL https://github.com/alvindimas05/AMDHelper/raw/refs/heads/main/ryzenadj -o ${systemRyzenadjPath}`
+      );
+      await exec(`xattr -c ${systemRyzenadjPath}`);
+      await exec(`chmod 755 ${systemRyzenadjPath}`);
+      await exec(`chown 0:0 ${systemRyzenadjPath}`);
+      
+      // Verify downloaded binary
+      if (!(await this.isRyzenadjBinaryValid(systemRyzenadjPath))) {
+        throw new Error("Downloaded binary is not valid.");
+      }
+      
+      console.log("Successfully downloaded and installed ryzenadj.");
+    } catch (error) {
+      console.error("Failed to download ryzenadj:", error);
+      throw new Error(
+        "Failed to download ryzenadj. Please check your internet connection or manually place the ryzenadj binary in the project root directory."
+      );
+    }
+  }
+
   async apply(presetName?: string) {
     // Hapus optimasi yang ada sebelum menerapkan yang baru
     if (this.enabled()) {
@@ -136,15 +220,8 @@ ${argsString}
       } optimization...`
     );
 
-    // Pastikan direktori bin lokal ada
-    await exec(`mkdir -p ${localBinPath}`);
-    // Unduh atau perbarui binary ryzenadj
-    await exec(
-      `curl -sL https://github.com/alvindimas05/AMDHelper/raw/refs/heads/main/ryzenadj -o ${ryzenadjPath}`
-    );
-    await exec(`xattr -c ${ryzenadjPath}`);
-    await exec(`chmod 755 ${ryzenadjPath}`);
-    await exec(`chown 0:0 ${ryzenadjPath}`);
+    // Pastikan binary ryzenadj tersedia
+    await this.ensureRyzenadjBinary();
 
     const currentPresetArgs = this.getPresetArgs(this.selectedPreset);
     const plistContent = this.generatePlist(currentPresetArgs);
