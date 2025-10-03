@@ -4,6 +4,48 @@ It specifically addresses issues with apps that rely on Dual Source Blend
 (previously assumed to be an OpenGL issue) and Intel MKL libraries.
 While AMDHelper can resolve some compatibility problems, it may not fix all unsupported apps.
 
+## Quick setup
+
+Follow these steps to quickly install and build a local copy of this project. This is a short summary — the "Building Manually (Detailed Guide)" section below contains a more detailed explanation.
+
+- Quick prerequisites:
+    - macOS (darwin) and an AMD CPU (this project targets AMD Hackintosh / iGPU setups).
+    - nvm (optional but recommended) to manage Node versions.
+
+- Quick steps (zsh):
+
+```zsh
+# 1) Use Node 18.19.0 (nvm)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+source ~/.zshrc
+nvm install 18.19.0
+nvm use 18.19.0
+
+# 2) Install Bun (package manager & runtime used by the project)
+curl -fsSL https://bun.sh/install | bash
+source ~/.zshrc
+
+# 3) Install dependencies and build
+cd /path/to/AMDHelper-EnchancedRyzenaAdj
+rm -rf node_modules bun.lockb
+bun install
+bun run build
+
+# 4) Run (or install to PATH)
+sudo ./build/amdhelper    # run directly
+# or
+sudo cp build/amdhelper /usr/local/bin/amdhelper
+sudo chmod +x /usr/local/bin/amdhelper
+sudo amdhelper
+```
+
+- Quick alternative: the repository includes an `install.sh` that downloads a pre-built release and installs it to `/usr/local/bin` — use that if you want to install without building from source.
+
+Quick notes:
+- Some features (e.g. system modifications and the RyzenAdj daemon) require running the tool with root privileges (sudo).
+- If you run into problems with `nexe`/compilation, verify your Node version (must be 18.19.0) and your network connection (nexe may download remote artifacts).
+
+
 ### How this works?
 - For apps utilizing Intel MKL libraries, AMDHelper employs [AMDFriend](https://github.com/NyaomiDEV/AMDFriend) to patch these libraries for better compatibility.
 
@@ -12,8 +54,9 @@ Unfortunately, this is a temporary workaround, and we must wait for [NootedRed](
 
 ### RyzenAdj Enhancements (Custom for my HP Aero 13 - Ryzen 7 5825U)
 
-![Demo Picture](pict_demo/demo.png)
-**Screenshoot at MacOS Tahoe 26 @HP Aero 13**
+![Demo Picture](pict_demo/demo1.png)
+![Demo Picture](pict_demo/demo2.png)
+**Screenshot on macOS Tahoe 13 @ HP Aero 13**
 
 This fork of AMDHelper includes significant modifications to the RyzenAdj integration, specifically tailored for devices like the HP Aero 13 with a Ryzen 7 5825U processor, which can be prone to overheating during sustained workloads. The goal is to provide flexible power management options to improve thermal performance and user experience for daily driving.
 
@@ -27,24 +70,24 @@ This fork of AMDHelper includes significant modifications to the RyzenAdj integr
 Each preset is designed with specific thermal and power limits to cater to various usage patterns, keeping the maximum temperature below 85°C for optimal device longevity and comfort (except for Gaming, which pushes limits for performance).
 
 1.  **Balanced**
-    -   **Skenario**: Ideal for everyday use, web browsing, and light productivity tasks where a balance between performance and thermal efficiency is desired.
-    -   **Suhu Maksimal**: 75°C
-    -   **Batas Daya**: 8W (STAPM), 10W (SLOW), 12W (FAST)
+    -   **Scenario**: Ideal for everyday use, web browsing, and light productivity tasks where a balance between performance and thermal efficiency is desired.
+    -   **Max Temperature**: 75°C
+    -   **Power Limits**: 8W (STAPM), 10W (SLOW), 12W (FAST)
 
 2.  **Performance**
-    -   **Skenario**: Suitable for demanding tasks such as video rendering, code compilation, or heavy multitasking, requiring higher CPU performance.
-    -   **Suhu Maksimal**: 85°C
-    -   **Batas Daya**: 13W (STAPM), 15W (SLOW), 15W (FAST)
+    -   **Scenario**: Suitable for demanding tasks such as video rendering, code compilation, or heavy multitasking, requiring higher CPU performance.
+    -   **Max Temperature**: 85°C
+    -   **Power Limits**: 13W (STAPM), 15W (SLOW), 15W (FAST)
 
 3.  **Silent**
-    -   **Skenario**: Best for media consumption, reading, or working in quiet environments where minimal fan noise and cooler operation are prioritized.
-    -   **Suhu Maksimal**: 60°C
-    -   **Batas Daya**: 7W (STAPM), 8.2W (SLOW), 10W (FAST)
+    -   **Scenario**: Best for media consumption, reading, or working in quiet environments where minimal fan noise and cooler operation are prioritized.
+    -   **Max Temperature**: 60°C
+    -   **Power Limits**: 7W (STAPM), 8.2W (SLOW), 10W (FAST)
 
 4.  **Gaming**
-    -   **Skenario**: Designed for gaming sessions where maximum performance is critical. This preset pushes the power limits while still aiming to manage thermals effectively.
-    -   **Suhu Maksimal**: 95°C
-    -   **Batas Daya**: 20W (STAPM), 23W (SLOW), 25W (FAST)
+    -   **Scenario**: Designed for gaming sessions where maximum performance is critical. This preset pushes the power limits while still aiming to manage thermals effectively.
+    -   **Max Temperature**: 95°C
+    -   **Power Limits**: 20W (STAPM), 23W (SLOW), 25W (FAST)
 
 ### How to use?
 
